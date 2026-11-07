@@ -1,2 +1,2 @@
 # goonfaucet
-tuffgoon faucet
+this is a crypto faucet for pepe
