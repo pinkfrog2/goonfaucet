@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free Coin Faucet</title>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<style>
+  :root {
+    --bg: #eef3f2; --ink: #12302f; --muted: #5b7371; --card: #ffffff;
+    --line: #cddad8; --coin: #e8a100; --coin-ink: #2b1d00; --bad: #b3261e; --good: #1c7a4a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0c1e1d; --ink: #e6f1ef; --muted: #8fb0ac; --card: #132b29; --line: #24433f; --bad: #ff8a80; --good: #6fdca0; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+         background: var(--bg); color: var(--ink); font: 16px/1.5 Georgia, "Times New Roman", serif; }
+  main { width: 100%; max-width: 440px; }
+  h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.01em; }
+  p.lead { margin: 0 0 24px; color: var(--muted); }
+  form { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 24px; }
+  label { display: block; font-weight: bold; margin-bottom: 6px; }
+  input { width: 100%; padding: 12px; font: inherit; color: var(--ink); background: transparent;
+          border: 1px solid var(--line); border-radius: 6px; }
+  input:focus-visible, button:focus-visible { outline: 3px solid var(--coin); outline-offset: 2px; }
+  .hint { font-size: 0.875rem; color: var(--muted); margin: 6px 0 18px; }
+  .cf-turnstile { margin-bottom: 18px; min-height: 65px; }
+  button { width: 100%; padding: 14px; font: inherit; font-weight: bold; cursor: pointer;
+           background: var(--coin); color: var(--coin-ink); border: 0; border-radius: 6px; }
+  button:disabled { opacity: 0.6; cursor: wait; }
+  #msg { margin-top: 16px; min-height: 1.5em; font-weight: bold; }
+  #msg.ok { color: var(--good); } #msg.err { color: var(--bad); }
+  @media (prefers-reduced-motion: no-preference) { button { transition: transform .1s; } button:active { transform: translateY(1px); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Free coin faucet</h1>
+  <p class="lead">Enter your FaucetPay address, confirm you're human, and claim your reward.</p>
+  <form id="form">
+    <label for="address">FaucetPay address</label>
+    <input id="address" name="address" type="text" autocomplete="off" required placeholder="Your FaucetPay email or wallet address">
+    <p class="hint">You can claim again after the cooldown ends.</p>
+    <!-- Replace data-sitekey with your Turnstile site key -->
+    <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"></div>
+    <button id="btn" type="submit">Claim reward</button>
+    <div id="msg" role="status" aria-live="polite"></div>
+  </form>
+</main>
+<script>
+  const form = document.getElementById("form");
+  const btn = document.getElementById("btn");
+  const msg = document.getElementById("msg");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = new FormData(form).get("cf-turnstile-response");
+    if (!token) { show("Complete the captcha first.", false); return; }
+    btn.disabled = true; show("Sending…", null);
+    try {
+      const res = await fetch("/api/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: form.address.value.trim(), token })
+      });
+      const data = await res.json();
+      show(data.message, data.ok);
+    } catch {
+      show("Network error. Try again.", false);
+    }
+    btn.disabled = false;
+    if (window.turnstile) turnstile.reset();
+  });
+
+  function show(text, ok) {
+    msg.textContent = text;
+    msg.className = ok === true ? "ok" : ok === false ? "err" : "";
+  }
+</script>
+</body>
+</html>
